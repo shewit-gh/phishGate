@@ -1,0 +1,8 @@
+# Pin versions and add --hash lines before the freeze (proposal section 3: --require-hashes).
+pydantic>=2.6,<3
+pytest>=8
+# later, per owner:
+# checkdmarc      (Shewit, header rules)   -- note: no network in the container
+# oletools        (Shewit, attachment rules)
+# python-magic    (Shewit, attachment rules)
+# flask           (analyst queue page)

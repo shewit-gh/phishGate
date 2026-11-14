@@ -1,0 +1,6 @@
+{
+  "template_id": "phishing_warning",
+  "fields": ["case_id", "sender_domain"],
+  "subject": "[Security] A reported e-mail was confirmed as phishing",
+  "body": "The security team reviewed case {case_id}. A message from the domain {sender_domain} was confirmed as phishing. Do not open it or follow its links. If you already entered credentials, change your password through the official portal and contact the security team.\n\n(Fixed template. No text from the reported e-mail appears in this message.)"
+}

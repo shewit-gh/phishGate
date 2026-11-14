@@ -1,0 +1,18 @@
+# ML bill of materials (proposal section 3). Fill in at model download; check_bom.py verifies it.
+models:
+  - name: Qwen2.5-14B-Instruct-AWQ        # planned candidate, to be confirmed at the mid-check
+    source: https://huggingface.co/Qwen/Qwen2.5-14B-Instruct-AWQ
+    uploader: Qwen (official account)
+    revision: TBD                          # git commit hash on the Hub
+    format: safetensors
+    signed: unsigned                       # accepted gap: Qwen does not sign releases
+    files: []                              # [{path, sha256}] recorded at download
+    checks:
+      - sha256 of every weight file re-verified at container start
+      - trust_remote_code=False
+      - config.json and tokenizer files compared with the official revision
+      - picklescan over the download directory
+serving:
+  runtime: ollama | vllm                   # pick one at the mid-check
+  gpu: lab server, >= 24 GB VRAM
+  network: none (container has no outbound network)

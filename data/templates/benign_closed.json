@@ -1,0 +1,6 @@
+{
+  "template_id": "benign_closed",
+  "fields": ["case_id"],
+  "subject": "[Security] Your reported e-mail was checked",
+  "body": "Thank you for reporting. Case {case_id} was checked and no phishing indicator was found. No action is needed."
+}

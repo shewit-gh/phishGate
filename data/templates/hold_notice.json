@@ -1,0 +1,6 @@
+{
+  "template_id": "hold_notice",
+  "fields": ["case_id"],
+  "subject": "[Security] Your reported e-mail is under review",
+  "body": "Thank you for reporting. Case {case_id} needs a manual look by an analyst. Please do not interact with the message until you hear from us."
+}

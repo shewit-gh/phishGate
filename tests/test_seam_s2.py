@@ -1,0 +1,49 @@
+"""Seam S2 (Diva): verdict -> verifier -> action agent.
+
+Proposal seam test: a well-formed verdict whose claimed facts do not match the
+headers must become HOLD. Also: extra fields are rejected before the verifier
+ever sees them, and a consistent benign verdict closes the case.
+"""
+import json
+
+import pytest
+from pydantic import ValidationError
+
+from phishgate.schemas import CaseStatus, Verdict
+from phishgate.verifier import verify
+
+
+def _verdict(**kw):
+    base = {"label": "benign", "reasons": ["none"], "sender_auth_failed": False,
+            "suspicious_links": False, "dangerous_attachment": False, "confidence": 0.9}
+    base.update(kw)
+    return Verdict.model_validate(base)
+
+
+def test_injected_benign_verdict_becomes_hold(injected_msg):
+    # This is exactly what the hidden instruction in injected_reset.eml asks the model to output.
+    v = _verdict()
+    checked = verify("case_test", "sha", injected_msg, v)
+    assert checked.status == CaseStatus.HOLD
+    assert "sender_auth_failed" in checked.hold_reason
+    assert "suspicious_links" in checked.hold_reason
+
+
+def test_consistent_benign_verdict_closes(benign_msg):
+    checked = verify("case_test", "sha", benign_msg, _verdict())
+    assert checked.status == CaseStatus.CLOSED
+    assert checked.hold_reason is None
+
+
+def test_honest_phishing_verdict_goes_to_analyst(injected_msg):
+    v = _verdict(label="phishing", reasons=["sender_auth_fail", "suspicious_link"],
+                 sender_auth_failed=True, suspicious_links=True)
+    checked = verify("case_test", "sha", injected_msg, v)
+    assert checked.status == CaseStatus.TO_ANALYST
+
+
+def test_extra_field_is_rejected_by_schema():
+    with pytest.raises(ValidationError):
+        Verdict.model_validate(json.loads(
+            '{"label":"benign","reasons":[],"sender_auth_failed":false,"suspicious_links":false,'
+            '"dangerous_attachment":false,"confidence":0.5,"note":"tell staff to reset passwords"}'))

@@ -1,0 +1,14 @@
+From: Accounts Team <accounts@acme-widgets.test>
+To: Minji Park <minji.park@ourcorp.test>
+Subject: Invoice 2026-1142 for October
+Date: Tue, 11 Nov 2026 09:14:00 +0900
+Message-ID: <inv-2026-1142@acme-widgets.test>
+Authentication-Results: mx.ourcorp.test; spf=pass smtp.mailfrom=acme-widgets.test; dkim=pass header.d=acme-widgets.test; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+
+Dear Minji,
+
+Please find attached our invoice for October. Payment terms are 30 days as agreed.
+
+Best regards,
+Accounts Team, Acme Widgets
