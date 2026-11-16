@@ -1,9 +1,13 @@
-"""Step 3: the verifier. Plain code, not AI. Owner: Diva (S2, defence layer 3).
+"""Step 3: the verifier. Plain code, not AI. Seam S2, defence layer 3.
 
 Rules (proposal sections 1 and 4):
   * the verdict must have exactly the allowed fields (pydantic, extra=forbid)
   * facts are recomputed from the ORIGINAL .eml, never taken from the model
   * any contradiction between verdict and facts -> HOLD, case stops
+  * a benign label with a soft indicator (Reply-To on another domain, sender
+    domain imitating ours) or with confidence under MIN_BENIGN_CONFIDENCE -> HOLD.
+    Only benign is checked this way: closing a case is the one outcome nobody
+    looks at again, so it is the one that must not be talked into.
   * suspicious / phishing -> to_analyst ; benign and consistent -> closed
 
 Seam test S2 (tests/test_seam_s2.py): a well-formed verdict whose claimed facts
@@ -13,6 +17,9 @@ from __future__ import annotations
 
 from ..rules.facts import compute_facts
 from ..schemas.verdict import CaseStatus, CheckedVerdict, Facts, Label, Verdict
+
+
+MIN_BENIGN_CONFIDENCE = 0.6   # below this a "benign" is not sure enough to close a case unseen
 
 
 def _contradictions(verdict: Verdict, facts: Facts) -> list[str]:
@@ -26,6 +33,13 @@ def _contradictions(verdict: Verdict, facts: Facts) -> list[str]:
         out.append(f"dangerous_attachment claimed {verdict.dangerous_attachment}, facts say {facts.dangerous_attachment}")
     if verdict.label == Label.BENIGN and (auth_failed or facts.suspicious_links or facts.dangerous_attachment):
         out.append("label benign but a hard indicator is present")
+    if verdict.label == Label.BENIGN:
+        if facts.reply_to_mismatch:
+            out.append("label benign but Reply-To points to another domain")
+        if facts.lookalike_sender:
+            out.append("label benign but the sender domain imitates the organisation")
+        if verdict.confidence < MIN_BENIGN_CONFIDENCE:
+            out.append(f"label benign with confidence below {MIN_BENIGN_CONFIDENCE}")
     return out
 
 

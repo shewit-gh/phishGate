@@ -4,7 +4,7 @@ Only a `Verdict` (fixed fields, closed vocabularies, no free text) may leave the
 untrusted zone. The verifier turns it into a `CheckedVerdict`. Nothing else
 from the e-mail side is ever passed on.
 
-Owner: Diva (S2). Changing a field here changes S1's prompt and S3's input, so
+Changing a field here changes S1's prompt and S3's input, so
 announce changes to the whole team.
 """
 from __future__ import annotations
@@ -59,6 +59,12 @@ class Facts(BaseModel):
     from_domain: str = ""
     link_count: int = 0
     attachment_count: int = 0
+    # Soft indicators. Not claimed by the model; the verifier uses them to stop a "benign" label.
+    reply_to_mismatch: bool = False
+    lookalike_sender: bool = False
+    # What the action agent may act on. Shape-checked by rules/header_rules.py, '' if unusable.
+    from_address: str = ""
+    message_id: str = ""
 
 
 class CaseStatus(str, Enum):

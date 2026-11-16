@@ -1,0 +1,17 @@
+From: IT Operations <it-ops@ourcorp.test>
+To: All Staff <all-staff@ourcorp.test>
+Subject: [Notice] VPN maintenance on Saturday, action may be required
+Date: Wed, 11 Nov 2026 16:20:00 +0900
+Message-ID: <maint-1114@ourcorp.test>
+Authentication-Results: mx.ourcorp.test; spf=pass smtp.mailfrom=ourcorp.test; dkim=pass header.d=ourcorp.test; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+Hello all,
+
+The VPN gateway will be restarted on Saturday 14 Nov between 02:00 and 04:00.
+If your session drops, sign in again as usual. Your password does not change and nobody
+from IT will ask you for it. No link is included in this notice on purpose.
+
+IT Operations

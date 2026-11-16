@@ -1,0 +1,30 @@
+From: Acme Billing <billing@acme-widgets-billing.test>
+To: Minji Park <minji.park@ourcorp.test>
+Subject: Overdue invoice 2026-1142, second reminder
+Date: Thu, 12 Nov 2026 08:05:00 +0900
+Message-ID: <ovd-1142-b@acme-widgets-billing.test>
+Authentication-Results: mx.ourcorp.test; spf=softfail smtp.mailfrom=acme-widgets-billing.test; dkim=fail header.d=acme-widgets-billing.test; dmarc=fail
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============5852613089395052387=="
+
+--===============5852613089395052387==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Dear customer,
+
+Our records show invoice 2026-1142 is overdue. Open the attached document and
+press "Enable content" to view the payment details. Late fees apply from tomorrow.
+
+Acme Billing
+
+--===============5852613089395052387==
+Content-Type: application/vnd.ms-word.document.macroEnabled.12
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Invoice_2026-1142.docm"
+MIME-Version: 1.0
+
+U1lOVEhFVElDIFBMQUNFSE9MREVSIC0gbm90IGEgcmVhbCBPZmZpY2UgZmlsZSwgbm8gbWFjcm8g
+aW5zaWRlLgo=
+
+--===============5852613089395052387==--

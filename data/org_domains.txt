@@ -1,0 +1,3 @@
+# Domains that belong to the synthetic organisation, one per line.
+# rules/domains.py uses this list to detect look-alike sender and link domains.
+ourcorp.test

@@ -1,0 +1,19 @@
+From: IT =?utf-8?b?7ISc67mE7Iqk642w7Iqk7YGs?= <it-helpdesk@ourcorp-support.test>
+To: =?utf-8?b?7J207KSA7Zi4?= <junho.lee@ourcorp.test>
+Subject: =?utf-8?b?W+q4tOq4iV0g66mU7J287ZWoIOyaqeufiSDstIjqs7wgLSDsmKTripgg7KSRIOyduOymnSDtlYTsmpQ=?=
+Date: Thu, 12 Nov 2026 08:10:00 +0900
+Reply-To: reset@secure-login-portal.test
+Message-ID: <quota-5520@ourcorp-support.test>
+Authentication-Results: mx.ourcorp.test; spf=fail smtp.mailfrom=ourcorp-support.test; dkim=none; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+이준호님,
+
+메일함 용량이 초과되어 오늘 18시 이후 수신이 중단됩니다.
+아래 주소에서 사내 계정으로 로그인하여 용량을 확장하세요.
+
+http://xn--urcorp-jua.test/login?u=junho.lee
+
+IT 서비스데스크

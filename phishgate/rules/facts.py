@@ -24,4 +24,8 @@ def compute_facts(msg: EmailMessage) -> Facts:
         from_domain=h["from_domain"],
         link_count=u["link_count"],
         attachment_count=a["attachment_count"],
+        reply_to_mismatch=h["reply_to_mismatch"],
+        lookalike_sender=h["lookalike_sender"],
+        from_address=h["from_address"],
+        message_id=h["message_id"],
     )

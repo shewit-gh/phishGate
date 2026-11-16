@@ -23,7 +23,7 @@ class StubLLM:
         self.queue = list(queue or [])
         self.default = default or json.dumps({
             "label": "benign", "reasons": ["none"], "sender_auth_failed": False,
-            "suspicious_links": False, "dangerous_attachment": False, "confidence": 0.5})
+            "suspicious_links": False, "dangerous_attachment": False, "confidence": 0.9})
         self.calls: list[tuple[str, str]] = []
 
     def complete(self, system: str, user: str) -> str:

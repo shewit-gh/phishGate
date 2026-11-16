@@ -23,8 +23,8 @@ class VerdictParseError(Exception):
     pass
 
 
-def run_analysis_agent(msg, llm: LLMClient) -> Verdict:
-    system, user = build_analysis_prompt(msg, rule_summary(msg))
+def run_analysis_agent(msg, llm: LLMClient, analyst_note: str | None = None) -> Verdict:
+    system, user = build_analysis_prompt(msg, rule_summary(msg), analyst_note)
     last_err: Exception | None = None
     for _ in range(MAX_CALLS):
         raw = llm.complete(system, user)

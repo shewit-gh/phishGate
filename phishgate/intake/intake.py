@@ -1,4 +1,4 @@
-"""Step 1: intake. Owner: Shewit (S1).
+"""Step 1: intake. Seam S1.
 
 Records a SHA-256 fingerprint of the uploaded .eml and stores it in the case
 folder. The file is DATA: nothing in it is executed or interpreted here.

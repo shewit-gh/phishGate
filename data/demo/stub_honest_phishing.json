@@ -1,0 +1,33 @@
+[
+ {
+  "label": "phishing",
+  "reasons": [
+   "sender_auth_fail",
+   "suspicious_link",
+   "credential_request",
+   "urgent_language",
+   "mismatched_reply_to"
+  ],
+  "sender_auth_failed": true,
+  "suspicious_links": true,
+  "dangerous_attachment": false,
+  "confidence": 0.93
+ },
+ [
+  {
+   "action": "search_sender",
+   "sender_address": "it-helpdesk@ourcorp-support.test"
+  },
+  {
+   "action": "quarantine",
+   "message_ids": [
+    "reset-7781@ourcorp-support.test"
+   ]
+  },
+  {
+   "action": "notify",
+   "template_id": "phishing_warning",
+   "fields": {}
+  }
+ ]
+]
