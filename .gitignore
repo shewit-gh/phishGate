@@ -1,8 +1,12 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-workspace/
+/workspace/
 *.sqlite3
 .venv/
 venv/
 models/
+
+# local planning docs (not shared)
+PhishGate_TEAM.md
+Team_Ctrl3_Proposal.pdf
