@@ -1,8 +1,9 @@
-# Pin versions and add --hash lines before the freeze (proposal section 3: --require-hashes).
-pydantic>=2.6,<3
-pytest>=8
-# later, per owner:
-# checkdmarc      (Shewit, header rules)   -- note: no network in the container
-# oletools        (Shewit, attachment rules)
-# python-magic    (Shewit, attachment rules)
-# flask           (analyst queue page)
+# Exact versions, as installed and tested on 16 Nov 2026 (Python 3.14).
+# requirements.lock holds the same set with every dependency and its SHA-256 hashes
+# (proposal section 3). Builds should use:   pip install --require-hashes -r requirements.lock
+# After changing a version here: install into a clean venv, then run scripts/lock_requirements.py.
+pydantic==2.14.3
+PyYAML==6.0.3        # scripts/check_bom.py reads bom.yaml
+flask==3.1.3         # phishgate/web.py, the analyst page (local only)
+pytest==9.2.0
+# Attachment checks use the standard library only (no oletools, no python-magic).

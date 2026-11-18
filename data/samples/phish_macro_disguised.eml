@@ -1,0 +1,32 @@
+From: Hanbit Logistics Sales <sales@hanbit-logistics.test>
+To: Minji Park <minji.park@ourcorp.test>
+Subject: Quotation 2026-0388 as requested
+Date: Fri, 13 Nov 2026 09:12:00 +0900
+Message-ID: <quote-0388-c@hanbit-logistics.test>
+Authentication-Results: mx.ourcorp.test; spf=pass smtp.mailfrom=hanbit-logistics.test; dkim=pass header.d=hanbit-logistics.test; dmarc=pass
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="=====phishgate-sample-macro-disguised"
+
+--=====phishgate-sample-macro-disguised
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Hello Minji,
+
+Please find the quotation attached. If the prices do not show, press "Enable content" at the top of the document.
+
+Best regards,
+Hanbit Logistics Sales
+
+--=====phishgate-sample-macro-disguised
+Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Quotation_2026-0388.docx"
+MIME-Version: 1.0
+
+UEsDBBQAAAAAAABIbV2sxk3uPgAAAD4AAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbDxUeXBlcz5TWU5USEVUSUMgUExBQ0VIT0xERVIgLSBub3QgYSByZWFsIE9mZmljZSBmaWxlLjwvVHlwZXM+UEsDBBQAAAAAAABIbV3yM/RlKgAAACoAAAARAAAAd29yZC9kb2N1
+bWVudC54bWw8ZG9jdW1lbnQ+U1lOVEhFVElDIFBMQUNFSE9MREVSPC9kb2N1bWVudD5QSwMEFAAAAAAAAEhtXRmLfxUuAAAALgAAABMAAAB3b3JkL3ZiYVByb2plY3QuYmluU1lOVEhFVElDIFBMQUNFSE9MREVSIC0gbm8gbWFjcm8gY29kZSBpbnNpZGUuClBLAQIU
+ABQAAAAAAABIbV2sxk3uPgAAAD4AAAATAAAAAAAAAAAAAACAAQAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQAFAAAAAAAAEhtXfIz9GUqAAAAKgAAABEAAAAAAAAAAAAAAIABbwAAAHdvcmQvZG9jdW1lbnQueG1sUEsBAhQAFAAAAAAAAEhtXRmLfxUuAAAALgAA
+ABMAAAAAAAAAAAAAAIAByAAAAHdvcmQvdmJhUHJvamVjdC5iaW5QSwUGAAAAAAMAAwDBAAAAJwEAAAAA
+
+--=====phishgate-sample-macro-disguised--

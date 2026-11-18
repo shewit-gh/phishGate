@@ -3,7 +3,6 @@
 Every argument is typed and closed. `notify` takes a template id and allow-listed
 fields only, so no attacker-written string can reach a message.
 
-Owner: Junhee (S3).
 """
 from __future__ import annotations
 

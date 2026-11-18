@@ -9,13 +9,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .agents import LLMClient, run_action_agent, run_analysis_agent
+from .agents import LLMClient, VerdictParseError, run_action_agent, run_analysis_agent
 from .audit import AuditLog
 from .gate import DEFAULT_POLICY, Gate, GateDecision, Policy
 from .intake import ingest
-from .schemas import CaseStatus, CheckedVerdict
+from .rules import compute_facts
+from .schemas import CaseStatus, CheckedVerdict, Label, Verdict
 from .verifier import verify
-from .workspace import Workspace
+from .workspace import Workspace, index_message
 
 
 @dataclass
@@ -36,9 +37,14 @@ class PhishGate:
         # (1) intake: fingerprint and store
         case = ingest(eml_path, self.workspace_dir)
         self.audit.append("intake", case.case_id, {"sha256": case.file_sha256, "source": str(eml_path)})
+        # The reported mail joins the corpus index, so it can be found and quarantined like any other.
+        index_message(self.ws, case.raw_path.read_bytes(), keep_existing=True)
 
         # (2) analysis agent: untrusted zone, verdict only
-        verdict = run_analysis_agent(case.message, self.llm)
+        try:
+            verdict = run_analysis_agent(case.message, self.llm)
+        except VerdictParseError as e:
+            return self._hold_without_verdict(case, str(e))
         self.audit.append("verdict_raw", case.case_id, verdict.model_dump())
 
         # (3) verifier: plain code, recompute facts, HOLD on contradiction  -- TRUST BOUNDARY 1
@@ -46,7 +52,10 @@ class PhishGate:
         self.audit.append("verdict_checked", case.case_id, {
             "status": checked.status.value, "label": verdict.label.value,
             "from_domain": checked.facts.from_domain, "hold_reason": checked.hold_reason})
-        if checked.status in (CaseStatus.HOLD, CaseStatus.CLOSED):
+        if checked.status == CaseStatus.HOLD:
+            self._queue_hold(checked)
+            return CaseResult(checked)
+        if checked.status == CaseStatus.CLOSED:
             return CaseResult(checked)
 
         # (4) action agent: control zone, sees the checked verdict only
@@ -58,3 +67,30 @@ class PhishGate:
 
         # (7) human approval happens later, through the analyst queue (cli: approve / reject)
         return CaseResult(checked, decisions)
+
+    def _queue_hold(self, checked: CheckedVerdict) -> None:
+        """Figure 1: a HOLD case goes to the analyst queue. No tool runs for it."""
+        item_id = self.ws.queue_hold_review(checked.case_id, checked.hold_reason or "")
+        self.audit.append("hold_queued", checked.case_id, {"item_id": item_id, "hold_reason": checked.hold_reason})
+
+    def _hold_without_verdict(self, case, error: str) -> CaseResult:
+        """The model never produced a valid Verdict: fail closed as HOLD instead of crashing.
+
+        `CheckedVerdict` needs a `Verdict`, so code writes a placeholder (label
+        suspicious, confidence 0, claims copied from the recomputed facts). It is
+        logged as `verdict_invalid`, never as `verdict_raw`, and the case stops.
+        """
+        self.audit.append("verdict_invalid", case.case_id, {"error": error[:300]})
+        facts = compute_facts(case.message)
+        placeholder = Verdict(label=Label.SUSPICIOUS, reasons=[],
+                              sender_auth_failed=facts.sender_auth == "fail",
+                              suspicious_links=facts.suspicious_links,
+                              dangerous_attachment=facts.dangerous_attachment, confidence=0.0)
+        checked = CheckedVerdict(case_id=case.case_id, file_sha256=case.file_sha256, verdict=placeholder,
+                                 facts=facts, status=CaseStatus.HOLD,
+                                 hold_reason="analysis agent produced no valid verdict")
+        self.audit.append("verdict_checked", case.case_id, {
+            "status": checked.status.value, "label": None,
+            "from_domain": facts.from_domain, "hold_reason": checked.hold_reason})
+        self._queue_hold(checked)
+        return CaseResult(checked)

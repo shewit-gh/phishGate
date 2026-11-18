@@ -1,0 +1,11 @@
+From: Dev Weekly <news@devweekly.test>
+To: Minji Park <minji.park@ourcorp.test>
+Subject: Dev Weekly #212: build caches, flaky tests, and a quiet release
+Date: Tue, 10 Nov 2026 06:30:00 +0900
+Message-ID: <issue-212@devweekly.test>
+Authentication-Results: mx.ourcorp.test; spf=pass smtp.mailfrom=devweekly.test; dkim=pass header.d=devweekly.test; dmarc=pass
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+<html><body><h2>Dev Weekly #212</h2><p>This week: how build caches go stale, and three ways to tame flaky tests.</p><p><a href="https://devweekly.test/issues/212">Read the issue online</a> | <a href="https://devweekly.test/unsubscribe">Unsubscribe</a></p></body></html>

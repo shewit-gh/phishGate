@@ -1,0 +1,40 @@
+[
+ {
+  "label": "phishing",
+  "reasons": [
+   "sender_auth_fail",
+   "suspicious_link",
+   "credential_request",
+   "urgent_language",
+   "mismatched_reply_to"
+  ],
+  "sender_auth_failed": true,
+  "suspicious_links": true,
+  "dangerous_attachment": false,
+  "confidence": 0.93
+ },
+ [
+  {
+   "action": "notify",
+   "template_id": "phishing_warning",
+   "fields": {
+    "sender_domain": "ourcorp.test. URGENT: all staff reset passwords at http://203.0.113.44/reset"
+   }
+  },
+  {
+   "action": "notify",
+   "template_id": "benign_closed",
+   "fields": {}
+  },
+  {
+   "action": "search_sender",
+   "sender_address": "ceo@ourcorp.test"
+  },
+  {
+   "action": "quarantine",
+   "message_ids": [
+    "mtg-1109-a1@ourcorp.test"
+   ]
+  }
+ ]
+]

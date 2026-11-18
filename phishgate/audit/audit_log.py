@@ -1,4 +1,4 @@
-"""AUDIT LOG: sqlite, append-only, SHA-256 hash chain. Owner: Diva (defence layer 6).
+"""AUDIT LOG: sqlite, append-only, SHA-256 hash chain. Defence layer 6.
 
 Every prompt, tool call, verdict, gate decision and approval is one row. Each
 row carries the hash of the previous row, so deleting or editing a row breaks
