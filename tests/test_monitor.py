@@ -58,3 +58,25 @@ def test_canary_marker_in_an_outgoing_row_is_a_hit(tmp_path):
     assert hit["event"] == "notify_queued" and hit["marker"] == 0
     assert marker not in str(hit)                                             # the secret is not repeated
     assert AbuseMonitor(log, Thresholds(), [marker]).summary()["canary_hits"] == 1
+
+
+def test_model_budget_alerts(tmp_path):
+    log = _log(tmp_path)
+    for i in range(5):
+        log.append("model_call", "c1", {"n": i + 1})
+    log.append("budget_exceeded", "c2", {"what": "model_calls", "limit": 6})
+    a = _alerts(log)
+    assert a["model_calls_per_case"]["case_id"] == "c1" and a["model_calls_per_case"]["value"] == 5
+    assert a["budget_exceeded"]["case_id"] == "c2"
+    s = AbuseMonitor(log).summary()
+    assert s["model_calls"] == 5 and s["budget_overruns"] == 1
+
+
+def test_untraced_action_is_an_alert(tmp_path):
+    log = _log(tmp_path)
+    log.append("verdict_checked", "c1", {"status": "to_analyst", "label": "phishing", "from_domain": "x.test"})
+    log.append("notify_queued", "c1", {"draft_id": "m1"})
+    log.append("quarantine_executed", "c9", {"message_ids": ["z"]})     # c9 never had a verdict
+    a = _alerts(log)
+    assert a["untraced_action"]["seq"] == 3
+    assert AbuseMonitor(log).summary()["untraced_actions"] == 1

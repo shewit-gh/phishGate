@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .agents import LLMClient, VerdictParseError, run_action_agent, run_analysis_agent
+from .agents import AuditedLLM, LLMClient, ModelBudgetExceeded, VerdictParseError, run_action_agent, run_analysis_agent
 from .audit import AuditLog
 from .gate import DEFAULT_POLICY, Gate, GateDecision, Policy
 from .intake import ingest
@@ -30,20 +30,21 @@ class PhishGate:
         self.workspace_dir = Path(workspace_dir)
         self.ws = Workspace(self.workspace_dir)
         self.audit = AuditLog(self.workspace_dir / "audit.sqlite3")
-        self.llm = llm
+        self.llm = AuditedLLM(llm, self.audit)   # every model call logged and budgeted (layer 6)
         self.gate = Gate(self.ws, self.audit, policy, Path(templates_dir))
 
     def run_case(self, eml_path: Path) -> CaseResult:
         # (1) intake: fingerprint and store
         case = ingest(eml_path, self.workspace_dir)
         self.audit.append("intake", case.case_id, {"sha256": case.file_sha256, "source": str(eml_path)})
+        self.llm.start_case(case.case_id)
         # The reported mail joins the corpus index, so it can be found and quarantined like any other.
         index_message(self.ws, case.raw_path.read_bytes(), keep_existing=True)
 
         # (2) analysis agent: untrusted zone, verdict only
         try:
             verdict = run_analysis_agent(case.message, self.llm)
-        except VerdictParseError as e:
+        except(VerdictParseError, ModelBudgetExceeded) as e:
             return self._hold_without_verdict(case, str(e))
         self.audit.append("verdict_raw", case.case_id, verdict.model_dump())
 
@@ -59,7 +60,10 @@ class PhishGate:
             return CaseResult(checked)
 
         # (4) action agent: control zone, sees the checked verdict only
-        proposals = run_action_agent(checked, self.llm)
+        try:
+            proposals = run_action_agent(checked, self.llm)
+        except ModelBudgetExceeded:
+            proposals = []   # budget_exceeded is already in the log; nothing is proposed
         self.audit.append("proposals", case.case_id, {"proposals": [p.model_dump() for p in proposals]})
 
         # (5)+(6) gate checks limits and runs tools  -- TRUST BOUNDARY 2

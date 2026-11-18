@@ -7,6 +7,7 @@ no model at all, for tests and for the skeleton.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Protocol
 from urllib import request
@@ -47,3 +48,36 @@ class OllamaClient:
                               headers={"Content-Type": "application/json"})
         with request.urlopen(req, timeout=self.timeout) as resp:
             return json.loads(resp.read())["message"]["content"]
+
+
+class ModelBudgetExceeded(Exception):
+    """Raised by AuditedLLM when a case has used all its model calls."""
+
+
+class AuditedLLM:
+    """Wraps any LLMClient. Every call becomes a `model_call` audit row and counts
+    against a per-case budget. The budget lives here, outside both agents, so no
+    prompt can raise it (defence layer 6; proposal section 4 cost cap).
+    Only hashes and sizes are logged: e-mail text never enters the audit log."""
+
+    def __init__(self, inner: LLMClient, audit, max_calls_per_case: int = 6):
+        self.inner, self.audit, self.max_calls_per_case = inner, audit, max_calls_per_case
+        self.case_id: str | None = None
+        self.calls_this_case = 0
+
+    def start_case(self, case_id: str) -> None:
+        self.case_id, self.calls_this_case = case_id, 0
+
+    def complete(self, system: str, user: str) -> str:
+        if self.calls_this_case >= self.max_calls_per_case:
+            self.audit.append("budget_exceeded", self.case_id,
+                              {"what": "model_calls", "limit": self.max_calls_per_case})
+            raise ModelBudgetExceeded(f"more than {self.max_calls_per_case} model calls for case {self.case_id}")
+        self.calls_this_case += 1
+        out = self.inner.complete(system, user)
+        self.audit.append("model_call", self.case_id, {
+            "n": self.calls_this_case,
+            "prompt_sha256": hashlib.sha256((system + "\n" + user).encode("utf-8")).hexdigest(),
+            "response_sha256": hashlib.sha256(out.encode("utf-8")).hexdigest(),
+            "response_chars": len(out)})
+        return out
