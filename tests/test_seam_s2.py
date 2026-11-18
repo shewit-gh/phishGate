@@ -1,4 +1,4 @@
-"""Seam S2 (Diva): verdict -> verifier -> action agent.
+"""Seam S2 : verdict -> verifier -> action agent.
 
 Proposal seam test: a well-formed verdict whose claimed facts do not match the
 headers must become HOLD. Also: extra fields are rejected before the verifier
