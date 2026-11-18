@@ -54,6 +54,28 @@ class ReasonCode(str, Enum):
     MISMATCHED_REPLY_TO = "mismatched_reply_to"
     NONE = "none"
 
+HARD_INDICATORS = frozenset({ReasonCode.SENDER_AUTH_FAIL, ReasonCode.SUSPICIOUS_LINK,
+                             ReasonCode.DANGEROUS_ATTACHMENT})
+_ASKS = frozenset({ReasonCode.CREDENTIAL_REQUEST, ReasonCode.PAYMENT_REQUEST})
+
+
+def label_from_reasons(reasons) -> Label:
+    """The label definition as a rule (same text in Label's docstring and docs/labels.md).
+
+    benign: no indicator. phishing: any of (a) sender_auth_fail or lookalike_domain
+    with a credential/payment request, (b) dangerous_attachment, (c) suspicious_link
+    with a credential request. Otherwise suspicious.
+    """
+    r = set(reasons) - {ReasonCode.NONE}
+    if not r:
+        return Label.BENIGN
+    if ReasonCode.DANGEROUS_ATTACHMENT in r:
+        return Label.PHISHING
+    if r & {ReasonCode.SENDER_AUTH_FAIL, ReasonCode.LOOKALIKE_DOMAIN} and r & _ASKS:
+        return Label.PHISHING
+    if ReasonCode.SUSPICIOUS_LINK in r and ReasonCode.CREDENTIAL_REQUEST in r:
+        return Label.PHISHING
+    return Label.SUSPICIOUS
 
 class Verdict(BaseModel):
     """Exactly what the analysis agent may output. Unknown fields are rejected."""

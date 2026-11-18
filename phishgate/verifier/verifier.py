@@ -16,7 +16,8 @@ do not match the headers must become HOLD.
 from __future__ import annotations
 
 from ..rules.facts import compute_facts
-from ..schemas.verdict import CaseStatus, CheckedVerdict, Facts, Label, Verdict
+from ..schemas.verdict import (CaseStatus, CheckedVerdict, Facts, Label, ReasonCode, Verdict,
+                               label_from_reasons)
 
 
 MIN_BENIGN_CONFIDENCE = 0.6   # below this a "benign" is not sure enough to close a case unseen
@@ -40,6 +41,18 @@ def _contradictions(verdict: Verdict, facts: Facts) -> list[str]:
             out.append("label benign but the sender domain imitates the organisation")
         if verdict.confidence < MIN_BENIGN_CONFIDENCE:
             out.append(f"label benign with confidence below {MIN_BENIGN_CONFIDENCE}")
+    # The verdict must agree with its own reasons (docs/labels.md). Only the benign
+    # direction is enforced: closing a case unseen is the outcome that must not be
+    # talked into.
+    if verdict.label == Label.BENIGN and label_from_reasons(verdict.reasons) != Label.BENIGN:
+        out.append("label benign but the reasons list an indicator")
+    # A reason that names a hard fact must match the claim about that fact.
+    claims = {ReasonCode.SENDER_AUTH_FAIL: verdict.sender_auth_failed,
+              ReasonCode.SUSPICIOUS_LINK: verdict.suspicious_links,
+              ReasonCode.DANGEROUS_ATTACHMENT: verdict.dangerous_attachment}
+    for code, claimed in claims.items():
+        if code in verdict.reasons and not claimed:
+            out.append(f"reason {code.value} given but the claim says False")
     return out
 
 
