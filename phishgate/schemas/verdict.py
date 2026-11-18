@@ -16,10 +16,30 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Label(str, Enum):
-    """The three verdict labels defined in proposal §1."""
-    BENIGN = "benign"          # no phishing indicator, nothing to do
-    SUSPICIOUS = "suspicious"  # at least one indicator, analyst must look
-    PHISHING = "phishing"      # credible attempt at credentials, money, data or malware
+    """Verdict labels (proposal section 1). One meaning, used by the prompt, the
+    verifier and the corpus labels. Mirrored in docs/labels.md.
+
+    An *indicator* is any ReasonCode other than ``none``. A *hard indicator* is one
+    plain code recomputes from the .eml: sender_auth_fail, suspicious_link,
+    dangerous_attachment. Soft indicators (mismatched_reply_to, lookalike_domain)
+    are recomputed too but used only to stop a benign label.
+
+    benign      No indicator is present. Nothing for the analyst to do; closed.
+    suspicious  At least one indicator, but the phishing rule is not met.
+                An analyst must look; no action is proposed.
+    phishing    A credible attempt to obtain credentials, money or data, or to
+                deliver malware. Rule, any one of:
+                  (a) sender_auth_fail AND (credential_request OR payment_request)
+                  (b) lookalike_domain AND (credential_request OR payment_request)
+                  (c) dangerous_attachment
+                  (d) suspicious_link AND credential_request
+
+    HOLD is not a label and the model can never choose it. It is a CaseStatus set
+    by the verifier when a verdict contradicts the recomputed facts.
+    """
+    BENIGN = "benign"
+    SUSPICIOUS = "suspicious"
+    PHISHING = "phishing"
 
 
 class ReasonCode(str, Enum):
@@ -68,10 +88,20 @@ class Facts(BaseModel):
 
 
 class CaseStatus(str, Enum):
-    CLOSED = "closed"            # confirmed benign, nothing to do
-    TO_ANALYST = "to_analyst"    # suspicious or phishing: analyst reviews, action agent may propose
-    HOLD = "hold"                # verdict contradicts facts; case stops here
+    """Set by the verifier (plain code), never by a model.
 
+    closed      Label benign, every claim agrees with the facts, no indicator,
+                confidence at or above the floor (0.6).
+    to_analyst  Label suspicious or phishing and the claims agree with the facts.
+                An analyst reviews; the action agent may propose actions.
+    hold        A claim contradicts the recomputed facts, or the label is benign
+                while any indicator is present or confidence is under the floor,
+                or the model gave no valid output. The case stops: no action
+                agent, no tool call. ``hold_reason`` says why.
+    """
+    CLOSED = "closed"
+    TO_ANALYST = "to_analyst"
+    HOLD = "hold"
 
 class CheckedVerdict(BaseModel):
     """What the action agent receives. Contains no e-mail text."""
