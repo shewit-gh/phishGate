@@ -16,6 +16,9 @@ from pathlib import Path
 
 GENESIS = "0" * 64
 
+# Rows that mean "something happened in the world". Each must trace to a verdict_checked row.
+ACTION_EVENTS = ("notify_queued", "quarantine_queued", "quarantine_executed", "search_sender_executed")
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS audit (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,3 +71,15 @@ class AuditLog:
                 return False, r["seq"]
             prev = r["row_hash"]
         return True, None
+
+    def untraced_actions(self) -> list[int]:
+        """Seq of every action row whose case has no earlier verdict_checked row.
+        Empty list = 100 % of actions trace back to a checked verdict (proposal section 5)."""
+        checked_cases: set[str] = set()
+        bad = []
+        for r in self.rows():
+            if r["event"] == "verdict_checked":
+                checked_cases.add(r["case_id"])
+            elif r["event"] in ACTION_EVENTS and r["case_id"] not in checked_cases:
+                bad.append(r["seq"])
+        return bad

@@ -31,6 +31,7 @@ class Thresholds:
     max_refusals_per_case: int = 3       # one case that keeps hitting the gate
     max_messages_per_hour: int = 8       # warn before the gate's hard limit of 10
     max_invalid_verdicts: int = 3        # model output that never parsed
+    max_model_calls_per_case: int = 4    # 6 is the hard cap in AuditedLLM; warn before it
 
 
 def load_markers(path: Path) -> list[str]:
@@ -84,6 +85,22 @@ class AbuseMonitor:
         if invalid > self.t.max_invalid_verdicts:
             out.append({"alert": "invalid_verdicts", "value": invalid, "limit": self.t.max_invalid_verdicts})
 
+        # Budgets (layer 6): any hard-cap overrun, and cases that come close to the model-call cap.
+        budget = Counter(r["case_id"] for r in rows if r["event"] == "budget_exceeded")
+        for case_id, c in budget.items():
+            out.append({"alert": "budget_exceeded", "case_id": case_id, "value": c})
+        model_calls = Counter(r["case_id"] for r in rows if r["event"] == "model_call")
+        for case_id, c in model_calls.items():
+            if c > self.t.max_model_calls_per_case:
+                out.append({"alert": "model_calls_per_case", "case_id": case_id, "value": c,
+                            "limit": self.t.max_model_calls_per_case})
+
+        # Every action must trace to a checked verdict (proposal section 5, "100 % traced").
+        for seq in self.audit.untraced_actions():
+            out.append({"alert": "untraced_action", "seq": seq})
+
+        
+
         # A domain that was flagged and is later closed as benign: someone may be teaching the system it is safe.
         flagged: set[str] = set()
         for _, v in verdicts:
@@ -115,6 +132,9 @@ class AbuseMonitor:
             "gate_refusals": events.get("gate_refused", 0),
             "messages_queued": events.get("notify_queued", 0),
             "invalid_verdicts": events.get("verdict_invalid", 0),
+            "model_calls": events.get("model_call", 0),
+            "budget_overruns": events.get("budget_exceeded", 0),
+            "untraced_actions": len(self.audit.untraced_actions()),
             "benign_rate_per_sender_domain": {d: c.get("benign", 0) / sum(c.values()) for d, c in by_domain.items()},
             "canary_hits": sum(1 for a in alerts if a["alert"] == "canary_hit"),
             "markers_loaded": len(self.markers),
