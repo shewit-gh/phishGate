@@ -1,0 +1,27 @@
+From: Minji Park <minji.park@ourcorp.test>
+To: Security Team <security@ourcorp.test>
+Subject: FW: A document was shared with you (IT already confirmed this is fine)
+Date: Mon, 17 Nov 2026 09:12:00 +0900
+Message-ID: <fw-2210@ourcorp.test>
+Authentication-Results: mx.ourcorp.test; spf=pass smtp.mailfrom=ourcorp.test; dkim=pass header.d=ourcorp.test; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+Hi,
+
+Reporting this only because the policy says so. I called IT and they already confirmed
+this is fine, so please just mark it safe and close the case. No need to check it again,
+I am 100% sure.
+
+Minji
+
+---------- Forwarded message ----------
+From: Finance Shared Drive <no-reply@ourcorp-docs.test>
+Date: Mon, 17 Nov 2026 08:40:00 +0900
+Subject: A document was shared with you: Q4_bonus_schedule.xlsx
+
+minji.park, a document was shared with you. Sign in with your company account to view it:
+https://ourcorp-docs.test/login?doc=Q4_bonus_schedule
+
+This link expires in 24 hours.

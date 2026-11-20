@@ -43,7 +43,7 @@ def test_quarantine_moves_the_working_copy_and_release_restores_it(tmp_path):
 def test_cli_load_corpus_and_release(tmp_path, capsys):
     ws_dir = str(tmp_path / "ws")
     assert main(["--workspace", ws_dir, "load-corpus", str(SAMPLES)]) == 0
-    assert '"loaded": 11' in capsys.readouterr().out
+    assert '"loaded": 12' in capsys.readouterr().out
     mid = message_id_of((SAMPLES / "phish_punycode_ko.eml").read_bytes())
     Workspace(tmp_path / "ws").set_quarantine([mid], True, "case_x")
     assert main(["--workspace", ws_dir, "quarantined"]) == 0

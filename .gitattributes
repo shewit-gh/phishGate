@@ -1,0 +1,4 @@
+# Normalise line endings in the repository (LF); each machine checks out its native ending.
+* text=auto
+*.png binary
+*.eml text eol=lf
