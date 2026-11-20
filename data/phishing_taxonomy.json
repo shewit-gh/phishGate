@@ -1,92 +1,144 @@
 {
-  "schema_version": "1.1.0",
-  "description": "Phishing e-mail taxonomy: the indicator catalogue behind PhishGate's three verdict labels (benign, suspicious, phishing; schemas/verdict.py). Each primary category names its indicators, the verdict label it maps to and the reason codes the analysis agent should cite. The analysis prompt is built from this file (phishgate/intake/taxonomy.py) and the generated corpus carries the category of every mail (scripts/make_corpus.py, labels.csv column `taxonomy`). Secondary tags describe a mail further; they never change the label. Content indicators are judged by the model only: the verifier keeps checking computed facts and nothing else.",
-  "verdict_labels": {
-    "benign": "no phishing indicator, nothing for the analyst to do",
-    "suspicious": "at least one indicator but not enough evidence to decide; an analyst must look",
-    "phishing": "a credible attempt to obtain credentials, money or data, or to deliver malware"
-  },
-  "label_rules": [
-    {
-      "id": "phishing_when_category_complete",
-      "label": "phishing",
-      "rule": "The e-mail matches a phishing category: its theme is present together with what the category needs to work (a link to a login or data-entry page, an attachment or download that executes, a request to pay or to change banking details, a fee or extortion demand, or a phone number as the only way to respond)."
-    },
-    {
-      "id": "suspicious_when_incomplete",
-      "label": "suspicious",
-      "rule": "The e-mail has the theme or wording of a phishing category but not its payload or request; or it carries a hard or soft indicator (failed sender authentication, Reply-To on another domain, look-alike domain, hidden text) without matching any category; or the evidence is contradictory or incomplete."
-    },
-    {
-      "id": "benign_when_legitimate",
-      "label": "benign",
-      "rule": "The e-mail matches legitimate or commercial_spam and no indicator of a phishing category is present. A failed sender check, a look-alike domain, a mismatched Reply-To or a hidden instruction never leaves an e-mail benign."
-    }
-  ],
+  "schema_version": "1.2.0",
+  "description": "Phishing e-mail taxonomy: the indicator catalogue behind PhishGate's three verdict labels (benign, suspicious, phishing). The label of a mail is decided by the rule in schemas/verdict.py (label_from_reasons, mirrored in docs/labels.md) from the reason codes the model cites; this file never decides a label. Each primary category names its indicators, the reason codes usually present, and the side it belongs to (`label`: benign for legitimate and commercial_spam, phishing for the six attack categories; a mail of an attack category still comes out suspicious when the rule is not met). The analysis prompt lists the categories after the label rule (phishgate/intake/taxonomy.py) and the generated corpus carries the category of every mail (scripts/make_corpus.py, labels.csv column `taxonomy`). Secondary tags describe a mail further; they never change the label. Content indicators are judged by the model only: the verifier keeps checking computed facts and nothing else.",
+  "label_source": "schemas/verdict.py: label_from_reasons(); same text in docs/labels.md",
   "primary_labels": [
     {
       "id": "legitimate",
       "name": "Legitimate",
       "label": "benign",
       "definition": "Genuine, expected correspondence, including real notifications from services the recipient actually uses.",
-      "indicators": ["expected sender", "consistent sender domain", "no credential or payment request", "content matches a real relationship or transaction"],
-      "reason_codes": ["none"]
+      "indicators": [
+        "expected sender",
+        "consistent sender domain",
+        "no credential or payment request",
+        "content matches a real relationship or transaction"
+      ],
+      "reason_codes": [
+        "none"
+      ]
     },
     {
       "id": "commercial_spam",
       "name": "Commercial spam",
       "label": "benign",
       "definition": "Unsolicited bulk marketing with no deception about sender identity or intent. Unwanted but not malicious.",
-      "indicators": ["promotional offers", "unsubscribe link", "real brand sending from its own domain", "no impersonation"],
-      "reason_codes": ["none"]
+      "indicators": [
+        "promotional offers",
+        "unsubscribe link",
+        "real brand sending from its own domain",
+        "no impersonation"
+      ],
+      "reason_codes": [
+        "none"
+      ]
     },
     {
       "id": "credential_phishing",
       "name": "Credential phishing (mass/deceptive)",
       "label": "phishing",
       "definition": "Untargeted email impersonating a brand or service to drive the recipient to a fake login or data-entry page.",
-      "indicators": ["generic salutation", "password expiry or account suspension theme", "package delivery or document share theme", "link to a login page on a lookalike or unrelated domain"],
-      "reason_codes": ["credential_request", "suspicious_link", "lookalike_domain", "urgent_language", "sender_auth_fail"]
+      "indicators": [
+        "generic salutation",
+        "password expiry or account suspension theme",
+        "package delivery or document share theme",
+        "link to a login page on a lookalike or unrelated domain"
+      ],
+      "reason_codes": [
+        "credential_request",
+        "suspicious_link",
+        "lookalike_domain",
+        "urgent_language",
+        "sender_auth_fail"
+      ]
     },
     {
       "id": "spear_phishing",
       "name": "Spear phishing",
       "label": "phishing",
       "definition": "Credential or malware lure visibly personalised to the recipient or their organisation. Includes lateral phishing sent from compromised internal accounts.",
-      "indicators": ["recipient name, role or colleagues referenced", "internal projects or events mentioned", "sender appears to be a known contact", "payload present (link or attachment)"],
-      "reason_codes": ["credential_request", "suspicious_link", "dangerous_attachment", "lookalike_domain", "sender_auth_fail"]
+      "indicators": [
+        "recipient name, role or colleagues referenced",
+        "internal projects or events mentioned",
+        "sender appears to be a known contact",
+        "payload present (link or attachment)"
+      ],
+      "reason_codes": [
+        "credential_request",
+        "suspicious_link",
+        "dangerous_attachment",
+        "lookalike_domain",
+        "sender_auth_fail"
+      ]
     },
     {
       "id": "bec_payment_fraud",
       "name": "Business Email Compromise / payment fraud",
       "label": "phishing",
       "definition": "Impersonates an executive, vendor or employee to request a wire transfer, invoice change, payroll or bank-detail update, or gift-card purchase. Typically plain text with no link or attachment.",
-      "indicators": ["request to pay, transfer or change banking details", "CEO or executive impersonation", "vendor invoice with new account details", "gift card purchase request", "secrecy or confidentiality framing"],
-      "reason_codes": ["payment_request", "mismatched_reply_to", "lookalike_domain", "urgent_language"]
+      "indicators": [
+        "request to pay, transfer or change banking details",
+        "CEO or executive impersonation",
+        "vendor invoice with new account details",
+        "gift card purchase request",
+        "secrecy or confidentiality framing"
+      ],
+      "reason_codes": [
+        "payment_request",
+        "mismatched_reply_to",
+        "lookalike_domain",
+        "urgent_language"
+      ]
     },
     {
       "id": "malware_delivery",
       "name": "Malware delivery",
       "label": "phishing",
       "definition": "Primary objective is to get the recipient to open an attachment or download a file that executes a payload.",
-      "indicators": ["macro-enabled document", "archive (zip, rar, 7z)", "ISO, IMG or LNK file", "HTML attachment (HTML smuggling)", "link to a direct file download"],
-      "reason_codes": ["dangerous_attachment", "suspicious_link", "urgent_language"]
+      "indicators": [
+        "macro-enabled document",
+        "archive (zip, rar, 7z)",
+        "ISO, IMG or LNK file",
+        "HTML attachment (HTML smuggling)",
+        "link to a direct file download"
+      ],
+      "reason_codes": [
+        "dangerous_attachment",
+        "suspicious_link",
+        "urgent_language"
+      ]
     },
     {
       "id": "advance_fee_scam",
       "name": "Advance-fee / consumer scam",
       "label": "phishing",
       "definition": "Promises money, prizes, inheritance, romance or charity in exchange for a reply, fee or personal data. Also covers sextortion and other extortion emails.",
-      "indicators": ["lottery or inheritance claim", "request for processing fee", "romance or charity appeal", "extortion threat with payment demand (often cryptocurrency)"],
-      "reason_codes": ["payment_request", "credential_request", "urgent_language"]
+      "indicators": [
+        "lottery or inheritance claim",
+        "request for processing fee",
+        "romance or charity appeal",
+        "extortion threat with payment demand (often cryptocurrency)"
+      ],
+      "reason_codes": [
+        "payment_request",
+        "credential_request",
+        "urgent_language"
+      ]
     },
     {
       "id": "callback_hybrid",
       "name": "Callback / hybrid",
       "label": "phishing",
       "definition": "No link or attachment; pushes the recipient to phone a number or switch to another channel (SMS, WhatsApp).",
-      "indicators": ["fake subscription renewal or invoice", "phone number as the only call to action", "instruction to contact support to cancel a charge"],
-      "reason_codes": ["payment_request", "urgent_language"]
+      "indicators": [
+        "fake subscription renewal or invoice",
+        "phone number as the only call to action",
+        "instruction to contact support to cancel a charge"
+      ],
+      "reason_codes": [
+        "payment_request",
+        "urgent_language"
+      ]
     }
   ],
   "tie_break_precedence": "rules apply in the listed order; the first rule that matches decides the category",
@@ -119,27 +171,58 @@
   "secondary_tags": {
     "vector": {
       "multi_label": true,
-      "values": ["link", "attachment", "qr_code_or_image", "reply_or_callback"],
+      "values": [
+        "link",
+        "attachment",
+        "qr_code_or_image",
+        "reply_or_callback"
+      ],
       "note": "an empty list means the mail carries no vector",
       "reference": "MITRE ATT&CK T1566.001 (attachment), .002 (link), .003 (via service)"
     },
     "requested_action": {
       "multi_label": true,
-      "values": ["click", "download_or_open", "reply", "call", "pay_or_transfer"]
+      "values": [
+        "click",
+        "download_or_open",
+        "reply",
+        "call",
+        "pay_or_transfer"
+      ]
     },
     "impersonated_sector": {
       "multi_label": false,
-      "values": ["email_or_it_provider", "financial", "logistics_or_delivery", "document_sharing", "government_or_tax", "hr_or_internal", "shopping_or_retail", "individual", "none"],
+      "values": [
+        "email_or_it_provider",
+        "financial",
+        "logistics_or_delivery",
+        "document_sharing",
+        "government_or_tax",
+        "hr_or_internal",
+        "shopping_or_retail",
+        "individual",
+        "none"
+      ],
       "reference": "Saka et al. (2024) Phishing Codebook sectors"
     },
     "persuasion": {
       "multi_label": true,
-      "values": ["authority", "urgency", "threat_or_fear", "reward_or_greed", "curiosity", "helpfulness_or_liking"],
+      "values": [
+        "authority",
+        "urgency",
+        "threat_or_fear",
+        "reward_or_greed",
+        "curiosity",
+        "helpfulness_or_liking"
+      ],
       "reference": "Ferreira, Coventry & Lenzini (2015), with urgency and threat kept separate"
     },
     "target": {
       "multi_label": false,
-      "values": ["mass", "targeted"]
+      "values": [
+        "mass",
+        "targeted"
+      ]
     }
   }
 }

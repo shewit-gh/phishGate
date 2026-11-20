@@ -1,10 +1,10 @@
 """The phishing taxonomy: the indicator catalogue behind the three verdict labels (S1, layer 2).
 
 `data/phishing_taxonomy.json` lists the categories of mail the analysis agent must
-recognise, the indicators of each, the verdict label a category maps to, the reason
-codes to cite, and the rules that decide between benign, suspicious and phishing.
-The three labels in `schemas/verdict.py` are the contract and do not change; the
-taxonomy only says what evidence puts a mail under one of them.
+recognise, the indicators of each, the reason codes usually present, and the side a
+category belongs to (benign or phishing). The label of a mail is decided by
+`label_from_reasons()` in `schemas/verdict.py` (text in docs/labels.md) from the reason
+codes the model cites. The taxonomy never decides a label; it says what to look for.
 
 Two consumers read the same file: the analysis prompt (`prompt_section()`, appended
 to the fixed instructions, never inside the data block) and the corpus labels
@@ -30,7 +30,7 @@ from ..schemas.verdict import Label, ReasonCode
 
 DEFAULT_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "phishing_taxonomy.json"
 MAX_INDICATORS = 6          # per category in the prompt; keeps the section short
-SECTION_TITLE = "How to choose the label."
+SECTION_TITLE = "Categories of mail."
 
 
 def taxonomy_on() -> bool:
@@ -70,9 +70,8 @@ def validate(tax: dict) -> list[str]:
                 out.append(f"{cid}: reason code {code!r} is not in ReasonCode")
         if not c.get("indicators"):
             out.append(f"{cid}: no indicators")
-    rules = tax.get("label_rules", [])
-    if {r.get("label") for r in rules} != labels:
-        out.append("label_rules must give exactly one rule per verdict label")
+    if "label_rules" in tax:
+        out.append("label_rules: the label rule lives in schemas/verdict.py (label_from_reasons), not in this file")
     for name, tag in tax.get("secondary_tags", {}).items():
         if tag.get("multi_label") and "none" in tag.get("values", []):
             out.append(f"secondary tag {name}: 'none' in a multi-label tag")
@@ -84,7 +83,7 @@ def category_ids(tax: dict | None = None) -> list[str]:
 
 
 def label_of(category_id: str, tax: dict | None = None) -> Label:
-    """The verdict label a taxonomy category maps to."""
+    """The side a category belongs to (benign or phishing): the corpus `label` column, not the rule's verdict."""
     for c in (tax or load_taxonomy())["primary_labels"]:
         if c["id"] == category_id:
             return Label(c["label"])
@@ -94,16 +93,14 @@ def label_of(category_id: str, tax: dict | None = None) -> Label:
 def prompt_section(tax: dict | None = None) -> str:
     """The taxonomy as fixed instruction text. Goes after the system instructions, never inside the data block."""
     tax = tax or load_taxonomy()
-    lines = [f"{SECTION_TITLE} Decide which category the e-mail belongs to; the category fixes the label. "
-             "Cite only reason codes you actually observed.", ""]
+    lines = [f"{SECTION_TITLE} Decide which category the e-mail belongs to and cite only reason codes you "
+             "actually observed. The label follows from the label rule above and the reason codes you cite, never "
+             "from the category name: an attack category whose rule is not met is suspicious.", ""]
     for c in tax["primary_labels"]:
         indicators = "; ".join(c["indicators"][:MAX_INDICATORS])
         codes = ", ".join(c["reason_codes"]) or "none"
-        lines.append(f"- {c['id']} -> {c['label']}. {c['definition']} Indicators: {indicators}. "
-                     f"Reason codes: {codes}.")
-    lines += ["", "Label rules:"]
-    for i, r in enumerate(tax["label_rules"], 1):
-        lines.append(f"{i}. {r['label']}: {r['rule']}")
+        lines.append(f"- {c['id']} ({c['label']} side). {c['definition']} Indicators: {indicators}. "
+                     f"Reason codes usually present: {codes}.")
     if tax.get("tie_break_rules"):
         lines += ["", f"When two categories fit ({tax.get('tie_break_precedence', 'first match wins')}):"]
         lines += [f"- {r['rule']}" for r in tax["tie_break_rules"]]

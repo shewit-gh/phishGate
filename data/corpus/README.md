@@ -16,11 +16,16 @@ seed gives the same files byte for byte, so regenerate instead of committing 360
 | injected (held-out) | 40 | **not generated.** One team member writes them by hand into `heldout/` and does not show them to whoever tunes the prompts. |
 
 Korean / English 50:50. Made-up names, `.test` domains, documentation IP ranges.
-`labels.csv` holds the ground truth (file, label, kind, lang, injection, marker, taxonomy); the file
-name carries the label too. `taxonomy` is the category of `data/phishing_taxonomy.json`
-(legitimate, credential_phishing, malware_delivery, bec_payment_fraud); `evaluate.py` reports
-evasion per category. Four categories have no generated mails yet: spear_phishing,
-advance_fee_scam, callback_hybrid, commercial_spam.
+`labels.csv` holds the ground truth (file, label, kind, lang, injection, marker, taxonomy,
+rule_label). `label` says attack or not; the file name carries it too. `rule_label` is what the
+label rule of `docs/labels.md` makes of the reason codes the generator planted, so it is the label
+the model should answer: credential, macro and BEC lures are `phishing`; the payslip href-mismatch
+(no request) and the quiet lure (no hard or soft indicator) are `suspicious`. `evaluate.py`
+scores precision / recall on `label` and exact-label accuracy on `rule_label`.
+`taxonomy` is the category of `data/phishing_taxonomy.json` (legitimate, credential_phishing,
+malware_delivery, bec_payment_fraud); `evaluate.py` reports evasion per category. Four
+categories have no generated mails yet: spear_phishing, advance_fee_scam, callback_hybrid,
+commercial_spam.
 
 20 secret marker strings (`CANARY-…`) are planted in benign bodies. No audit row written
 after intake should ever contain one; `phishgate.cli monitor` and `evaluate.py` check that.

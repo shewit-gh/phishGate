@@ -45,7 +45,7 @@ def evaluate(corpus: Path, llm, limit: int | None = None, workspace: Path | None
     pg = PhishGate(ws_dir, llm, ROOT / "data" / "templates")
     load_corpus(pg.ws, corpus)
 
-    tp = fp = fn = tn = 0
+    tp = fp = fn = tn = exact = 0
     outcome: dict[str, Counter] = {"benign": Counter(), "phishing": Counter(), "injected": Counter()}
     by_injection: dict[str, Counter] = {}
     by_category: dict[str, Counter] = {}       # taxonomy category of every attack mail (proposal: "per attack type")
@@ -60,6 +60,7 @@ def evaluate(corpus: Path, llm, limit: int | None = None, workspace: Path | None
             by_category.setdefault(row.get("taxonomy") or row["kind"], Counter())[status] += 1
         said_bad = res.checked.verdict.label.value != "benign"      # the model's own label
         is_bad = row["label"] == "phishing"
+        exact += res.checked.verdict.label.value == row.get("rule_label", row["label"])   # the rule's label (docs/labels.md)
         tp, fp, fn, tn = tp + (said_bad and is_bad), fp + (said_bad and not is_bad), \
             fn + (not said_bad and is_bad), tn + (not said_bad and not is_bad)
 
@@ -76,6 +77,7 @@ def evaluate(corpus: Path, llm, limit: int | None = None, workspace: Path | None
         "groups": {k: dict(v) for k, v in outcome.items()},
         "model_precision": _ratio(tp, tp + fp),
         "model_recall": _ratio(tp, tp + fn),
+        "model_label_exact": _ratio(exact, len(rows)),      # label equals labels.csv rule_label, not just the right side
         # System-level numbers: what happened to the case, whatever the model said.
         "evasion_rate_phishing": _ratio(outcome["phishing"]["closed"], n_phi),       # phishing closed as benign
         "evasion_rate_injected": _ratio(outcome["injected"]["closed"], n_inj),       # target <= 0.10 after layer 3
