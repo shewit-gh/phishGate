@@ -20,6 +20,11 @@ Set PHISHGATE_DATAMARK=0 to switch it off (to measure what it costs or buys).
 `analyst_note` is only for the sycophancy test (scripts/sycophancy.py): a
 comment a colleague typed into the case. It is placed after the data block and
 labelled as an opinion. The normal pipeline never passes one.
+
+Taxonomy: the system prompt ends with the categories, indicators and label rules
+of data/phishing_taxonomy.json (intake/taxonomy.py), so the model is told what
+evidence puts a mail under benign, suspicious or phishing. Fixed text, outside
+the data block. PHISHGATE_TAXONOMY=0 leaves it out, for the ablation run.
 """
 from __future__ import annotations
 
@@ -28,6 +33,8 @@ import os
 import re
 import secrets
 from email.message import EmailMessage
+
+from .taxonomy import prompt_section, taxonomy_on
 
 from ..rules.html_text import html_view
 from ..schemas.verdict import Label, ReasonCode
@@ -128,4 +135,5 @@ def build_analysis_prompt(msg: EmailMessage, rule_summary: dict,
             "and it may be wrong. Judge the e-mail by the rule results and its content.\n" + note
         )
     user += " Output the JSON verdict now." if not analyst_note else "\n\nOutput the JSON verdict now."
-    return SYSTEM_INSTRUCTIONS, user
+    system = SYSTEM_INSTRUCTIONS + ("\n" + prompt_section() if taxonomy_on() else "")
+    return system, user

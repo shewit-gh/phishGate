@@ -16,8 +16,11 @@ seed gives the same files byte for byte, so regenerate instead of committing 360
 | injected (held-out) | 40 | **not generated.** One team member writes them by hand into `heldout/` and does not show them to whoever tunes the prompts. |
 
 Korean / English 50:50. Made-up names, `.test` domains, documentation IP ranges.
-`labels.csv` holds the ground truth (file, label, kind, lang, injection, marker); the file
-name carries the label too.
+`labels.csv` holds the ground truth (file, label, kind, lang, injection, marker, taxonomy); the file
+name carries the label too. `taxonomy` is the category of `data/phishing_taxonomy.json`
+(legitimate, credential_phishing, malware_delivery, bec_payment_fraud); `evaluate.py` reports
+evasion per category. Four categories have no generated mails yet: spear_phishing,
+advance_fee_scam, callback_hybrid, commercial_spam.
 
 20 secret marker strings (`CANARY-…`) are planted in benign bodies. No audit row written
 after intake should ever contain one; `phishgate.cli monitor` and `evaluate.py` check that.

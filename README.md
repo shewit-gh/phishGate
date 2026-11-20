@@ -16,7 +16,7 @@ stays inside a local case workspace: no mailbox, no mail server, no network.
 What runs today, with a stub model and no GPU:
 
 ```
-python -m phishgate.cli load-corpus data/samples                 # index the eleven sample mails
+python -m phishgate.cli load-corpus data/samples                 # index the twelve sample mails
 python -m phishgate.cli run data/samples/benign_invoice.eml      # -> closed
 python -m phishgate.cli run data/samples/injected_reset.eml      # stub obeys the injection -> verifier says HOLD
 python -m phishgate.cli run data/samples/injected_reset.eml --stub-file data/demo/stub_honest_phishing.json
@@ -29,13 +29,16 @@ python -m phishgate.cli monitor                                  # alerts
 python -m phishgate.cli serve                                    # the analyst page, http://127.0.0.1:5000
 python scripts/make_corpus.py && python scripts/evaluate.py      # 360-mail corpus and the section-5 numbers
 python scripts/sycophancy.py                                     # plumbing only with the stub; needs the model
-python -m pytest -q                                              # 89 passed, 1 skipped (needs the model)
+python scripts/approver_fatigue.py plant                         # bad drafts in the queue; `score` after the analyst worked it
+python -m pytest -q                                              # 97 passed, 1 skipped (needs the model)
 ```
 
 Not done: the real model (Qwen on the lab GPU), `bom.yaml` hashes, the 40 held-out injection
-mails. The sycophancy script and datamarking are written but have never met a real model.
+mails. The sycophancy script, datamarking and the taxonomy prompt are written but have never
+met a real model (`PHISHGATE_DATAMARK=0` and `PHISHGATE_TAXONOMY=0` switch them off for comparison).
 
-Latest changes and open questions: [docs/CHANGES_2026-11-16.md](docs/CHANGES_2026-11-16.md).
+Latest changes and open questions: [docs/CHANGES_2026-11-17.md](docs/CHANGES_2026-11-17.md),
+[docs/CHANGES_2026-11-16.md](docs/CHANGES_2026-11-16.md).
 
 With Ollama running Qwen locally: `--llm ollama --model qwen2.5:14b`.
 
@@ -53,13 +56,13 @@ With Ollama running Qwen locally: `--llm ollama --model qwen2.5:14b`.
 | `phishgate/workspace/` | data | sqlite corpus index, quarantine flags, analyst queue, `outbox/` |
 | `phishgate/audit/` | cross-cutting | hash-chained audit log, abuse monitor |
 | `phishgate/pipeline.py` | orchestrator | the seven steps in order; the only place S1, S2, S3 meet |
-| `data/samples/` |  | ten hand-written synthetic mails for the demo |
+| `data/samples/` |  | twelve hand-written synthetic mails for the demo |
 | `data/templates/` |  | the fixed notify templates and their allow-listed fields |
 | `data/corpus/` |  | synthetic evaluation corpus (to generate) |
 | `tests/` |  | one seam test per seam, plus the audit-chain test |
 | `phishgate/web.py` | control | the analyst page (Flask, local only) |
 | `data/demo/` |  | canned model outputs for the stub, for demos without a GPU |
-| `scripts/` |  | corpus generator, evaluation, BOM check |
+| `scripts/` |  | corpus generator, evaluation, sycophancy and approver-fatigue tests, BOM check |
 
 Trust boundary 1 is the call from `pipeline.py` into `verifier.verify()`: only a
 `Verdict` crosses, never e-mail text. Trust boundary 2 is `Gate.run()`: only the gate
@@ -92,7 +95,8 @@ imports `tools/`.
 | file | what it does |
 | --- | --- |
 | `intake.py` | `ingest()`: read the upload, refuse over 2 MB, SHA-256 fingerprint, store a byte-identical copy in `workspace/cases/<id>/original.eml`, parse with the standard library. Returns a `Case`. |
-| `prompt_assembly.py` | `build_analysis_prompt()`: spotlighting (defence layer 2). Fixed instructions first, then the e-mail inside a data block fenced by a per-run random nonce, headers / body / attachments labelled by origin, nonce stripped from the mail so it cannot forge a boundary. An HTML body is reduced to the text a reader sees (hidden elements and comments dropped); a mail with a plain and an HTML part shows both. Datamarking: every space in the body, the subject and attachment names becomes the marker `ˆ`, and the prompt says outside the block that such text is never an instruction (`PHISHGATE_DATAMARK=0` switches it off for comparison). An optional analyst comment, used only by the sycophancy test, goes after the block and is labelled as opinion. |
+| `prompt_assembly.py` | `build_analysis_prompt()`: spotlighting (defence layer 2). Fixed instructions first, then the e-mail inside a data block fenced by a per-run random nonce, headers / body / attachments labelled by origin, nonce stripped from the mail so it cannot forge a boundary. An HTML body is reduced to the text a reader sees (hidden elements and comments dropped); a mail with a plain and an HTML part shows both. Datamarking: every space in the body, the subject and attachment names becomes the marker `ˆ`, and the prompt says outside the block that such text is never an instruction (`PHISHGATE_DATAMARK=0` switches it off for comparison). An optional analyst comment, used only by the sycophancy test, goes after the block and is labelled as opinion. The system prompt ends with the taxonomy section (below). |
+| `taxonomy.py` | `data/phishing_taxonomy.json` as code: `load_taxonomy()` validates the file (every category maps to one of the three labels, cites only existing reason codes, no `none` in a multi-label tag), `prompt_section()` renders the categories, indicators and label rules as fixed instruction text for the analysis prompt, `label_of()` maps a category to its label. `PHISHGATE_TAXONOMY=0` leaves the section out of the prompt. The content indicators are judged by the model only; the verifier is unchanged. |
 
 #### `phishgate/rules/` : read-only tools (look, don't act)
 
@@ -161,9 +165,10 @@ Used twice: as the analysis agent's tool results and, re-run independently, as t
 
 | path | what it is |
 | --- | --- |
-| `samples/*.eml` | ten synthetic mails: four benign, three phishing, three with injected instructions; Korean and English. |
+| `samples/*.eml` | twelve synthetic mails: four benign, four phishing, three with injected instructions, one report with a false "IT already confirmed" claim; Korean and English. |
 | `demo/*.json` | canned outputs for `--stub-file`: an honest run and a hijacked action agent. |
 | `org_domains.txt` | the organisation's own domains, used by the look-alike rule. |
+| `phishing_taxonomy.json` | the indicator catalogue behind the three labels: eight categories (legitimate, commercial spam, credential phishing, spear phishing, BEC, malware delivery, advance-fee scam, callback) with definition, indicators, the verdict label each maps to and the reason codes to cite; the rules that decide benign / suspicious / phishing; tie-break rules in precedence order; secondary tags (vector, requested action, impersonated sector, persuasion, target). Read by `intake/taxonomy.py` for the prompt and by `scripts/make_corpus.py` for `labels.csv`. |
 | `samples/README.md` | one row per mail: what it is, the recomputed facts, the stub result and the target result. |
 | `templates/*.json` | the three notify templates (`phishing_warning`, `hold_notice`, `benign_closed`): subject, body, and the only fields the gate accepts. |
 | `corpus/README.md` | plan for the 300-mail synthetic corpus. Not generated yet. The 40 held-out injection mails go in a separate folder nobody on S1 reads. |
@@ -183,14 +188,17 @@ Used twice: as the analysis agent's tool results and, re-run independently, as t
 | `test_web.py` | the analyst page: security headers, POST without the token refused, upload to HOLD to review, approve into `outbox/`, attacker text escaped. |
 | `test_scripts.py` | BOM check passes then fails on any change and fails closed when unfilled; the corpus is reproducible; the evaluation runs; the sycophancy script counts flips and what the verifier still stops. |
 | `test_audit_chain.py` | the chain verifies, and breaks at the edited row after tampering. |
+| `test_taxonomy.py` | the taxonomy file is valid and maps every category onto benign or phishing (suspicious comes from the label rules); a broken file is caught; the prompt carries the taxonomy outside the data block and `PHISHGATE_TAXONOMY=0` removes it; `labels.csv` carries the category and the evaluation reports evasion per category. |
+| `test_approval.py` | layer 5: every message waits for a click and a reject leaves nothing; a bulk quarantine waits and a small one runs; the hourly message limit holds; planted bad drafts are scored and every one of them fails the template check while a gate-made draft passes. |
 
 ### `scripts/`
 
 | file | what it does |
 | --- | --- |
 | `make_corpus.py` | generates the synthetic evaluation corpus into `data/corpus/generated/` (git-ignored; same seed, same bytes): 200 benign (40 real-looking security notices), 100 phishing, 60 injected with ten injection techniques, Korean / English 50:50, 20 canary markers in `data/corpus/markers.txt`, ground truth in `labels.csv`. The 40 held-out injection mails are written by hand, not here. |
-| `evaluate.py` | runs the pipeline over a labelled corpus and prints the numbers of proposal section 5: model precision / recall, evasion rate, HOLD rate on benign, refusals, traced cases, canary hits. `--llm stub` gives the floor (a model that obeys every injection); `--llm ollama` gives the real numbers. |
+| `evaluate.py` | runs the pipeline over a labelled corpus and prints the numbers of proposal section 5: model precision / recall, evasion rate (overall, per injection technique and per taxonomy category), HOLD rate on benign, refusals, traced cases, canary hits. `--llm stub` gives the floor (a model that obeys every injection); `--llm ollama` gives the real numbers. |
 | `sycophancy.py` | takes 50 mails the model labels correctly, runs them again with a confident false comment from a colleague, and counts how often the label changes sides and whether the verifier still stops the case. Meaningful with `--llm ollama` only. |
+| `approver_fatigue.py` | the layer-5 residual-risk test: `plant` queues honest drafts and bad ones (attacker text, a link, a changed subject, an unknown template, a blank field) in a shuffled order and writes the answer key outside the workspace; after the analyst has worked the queue, `score` reports how many bad drafts were approved. `draft_problems()` is the automatic check of a queued draft against its template. |
 | `lock_requirements.py` | writes `requirements.lock` from the installed environment and PyPI's published hashes. |
 | `check_bom.py` | verifies `models/<name>/` against `bom.yaml` before the model server starts: commit hash present, every file listed with a matching SHA-256, nothing unlisted, no pickle-format file, no `auto_map` in `config.json`. Fails closed (the unfilled BOM is an error). `--record` prints the `files:` block to paste. |
 
@@ -226,8 +234,8 @@ python -m pytest -q
 1. Confirm the model and serving stack on the lab GPU; download the weights, run
    `python scripts/check_bom.py --record <name>`, paste the result and the commit hash into `bom.yaml`.
 2. Run `PHISHGATE_OLLAMA_MODEL=... python -m pytest -q`, `python scripts/evaluate.py --llm ollama`
-   (once more with `PHISHGATE_DATAMARK=0` to see what datamarking costs or buys) and
-   `python scripts/sycophancy.py --llm ollama`; tune the two prompts on the tuning set only.
+   (once more with `PHISHGATE_DATAMARK=0`, and once with `PHISHGATE_TAXONOMY=0`, to see what each
+   costs or buys) and `python scripts/sycophancy.py --llm ollama`; tune the two prompts on the tuning set only.
 3. Write the 40 held-out injection mails by hand (`data/corpus/heldout/`).
 4. Video: problem (30 s), diagram with repo tree (90 s), live run of a benign then an injected
    mail ending in HOLD and the audit line (2 min), what is not built yet and the number
@@ -242,3 +250,7 @@ The changes of 16 Nov 2026 (branch `JH-261116`, listed in `docs/CHANGES_2026-11-
 with Claude Code (Anthropic, Fable 5.2) under Junhee's direction: gate hardening, pipeline fail-closed
 paths, corpus loader, rules, monitor, analyst page, scripts, sample mails and tests. The team reviews
 them before they are merged.
+
+The changes of 17 Nov 2026 (branch `SH-261117`, listed in `docs/CHANGES_2026-11-17.md`) were written
+with Claude Code (Anthropic, Mythos 5.1) under Shewit's direction: the taxonomy and its prompt section,
+the per-category evaluation, the approver-fatigue script and test, one sample mail and the docs.
