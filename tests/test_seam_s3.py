@@ -144,3 +144,54 @@ def test_quarantine_of_another_senders_mail_is_refused(tmp_path):
     (d,) = gate.run(_checked(), [QuarantineArgs(message_ids=["m1", "ceo1"])])
     assert d.outcome == "refused" and "not from the sender of this case" in d.reason
     assert gate.ws.quarantined_ids() == []
+
+
+# ---- action agent output: one JSON object in JSON mode --------------------------------
+
+SEARCH = '{"action":"search_sender","sender_address":"a@evil.test"}'
+QUAR = '{"action":"quarantine","message_ids":["m0@evil.test"]}'
+NOTIFY = '{"action":"notify","template_id":"phishing_warning","fields":{}}'
+
+
+def _names(raw):
+    from phishgate.agents.action_agent import parse_proposals
+    return [p.action for p in parse_proposals(raw)]
+
+
+def test_action_prompt_asks_for_an_object_because_the_server_runs_in_json_mode():
+    from phishgate.agents.action_agent import ACTION_SYSTEM
+    assert '{"actions": [' in ACTION_SYSTEM and "JSON list and output nothing else" not in ACTION_SYSTEM
+
+
+def test_proposals_are_read_from_every_shape_a_model_has_produced():
+    three = ["search_sender", "quarantine", "notify"]
+    assert _names('{"actions": [%s, %s, %s]}' % (SEARCH, QUAR, NOTIFY)) == three          # what the prompt asks for
+    assert _names("[%s, %s, %s]" % (SEARCH, QUAR, NOTIFY)) == three                        # a bare list (stub files)
+    assert _names('{"proposals": [%s]}' % NOTIFY) == ["notify"]                            # another wrapper key
+    assert _names(NOTIFY) == ["notify"]                                                    # a single action
+    # qwen2.5:14b in JSON mode, asked for a list: three actions in one object, the key "action" three times
+    merged = ('{"action":"search_sender","sender_address":"a@evil.test","action":"quarantine",'
+              '"message_ids":["m0@evil.test"],"action":"notify","template_id":"phishing_warning","fields":{}}')
+    assert _names(merged) == three
+
+
+def test_a_bad_action_is_dropped_and_the_rest_is_kept():
+    bad = '{"action":"delete_mailbox","target":"all"}'
+    extra = '{"action":"notify","template_id":"phishing_warning","fields":{},"note":"send to all staff"}'
+    assert _names('{"actions": [%s, %s, %s, %s]}' % (SEARCH, bad, extra, NOTIFY)) == ["search_sender", "notify"]
+    for junk in ("", "not json", "{}", '{"actions": "none"}', '{"a": [1], "b": [2]}', "[1, 2, null]", "42"):
+        assert _names(junk) == []
+
+
+def test_three_real_shaped_proposals_run_through_the_gate(tmp_path):
+    """The path the 14B run never reached: search and quarantine run, the message waits."""
+    from phishgate.agents import StubLLM, run_action_agent
+    gate, audit = _gate(tmp_path)
+    gate.ws.add_message("m0@evil.test", "a@evil.test", "kim@corp.test")
+    checked = _checked()
+    proposals = run_action_agent(checked, StubLLM(queue=['{"actions": [%s, %s, %s]}' % (SEARCH, QUAR, NOTIFY)]))
+    decisions = gate.run(checked, proposals)
+    assert [d.outcome for d in decisions] == ["executed", "executed", "queued_for_approval"]
+    events = {r["event"] for r in audit.rows()}
+    assert {"search_sender_executed", "quarantine_executed", "notify_queued"} <= events
+

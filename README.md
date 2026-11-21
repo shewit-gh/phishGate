@@ -30,14 +30,15 @@ python -m phishgate.cli serve                                    # the analyst p
 python scripts/make_corpus.py && python scripts/evaluate.py      # 360-mail corpus and the section-5 numbers
 python scripts/sycophancy.py                                     # plumbing only with the stub; needs the model
 python scripts/approver_fatigue.py plant                         # bad drafts in the queue; `score` after the analyst worked it
-python -m pytest -q                                              # 111 passed, 1 skipped (needs the model)
+python -m pytest -q                                              # 115 passed, 1 skipped (needs the model)
 ```
 
 Not done: the real model (Qwen on the lab GPU), `bom.yaml` hashes, the 40 held-out injection
 mails. The sycophancy script, datamarking and the taxonomy prompt are written but have never
 met a real model (`PHISHGATE_DATAMARK=0` and `PHISHGATE_TAXONOMY=0` switch them off for comparison).
 
-Latest changes and open questions: [docs/CHANGES_2026-11-17.md](docs/CHANGES_2026-11-17.md),
+Latest changes and open questions: [docs/CHANGES_2026-11-21.md](docs/CHANGES_2026-11-21.md) (first run with the real model),
+[docs/CHANGES_2026-11-17.md](docs/CHANGES_2026-11-17.md),
 [docs/CHANGES_2026-11-16.md](docs/CHANGES_2026-11-16.md).
 
 With Ollama running Qwen locally: `--llm ollama --model qwen2.5:14b`.
